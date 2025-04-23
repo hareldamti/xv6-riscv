@@ -3,5 +3,13 @@
         "types.h": "c",
         "riscv.h": "c",
         "defs.h": "c",
+        "user.h": "c",
+        "file.h": "c",
+        "fs.h": "c",
+        "sleeplock.h": "c",
+        "stat.h": "c",
+        "fcntl.h": "c",
+        "spinlock.h": "c",
+        "cstdlib": "c"
     },
 }

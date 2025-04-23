@@ -325,6 +325,68 @@ fork(void)
   return pid;
 }
 
+int
+forkn(uint64 n, uint64 pids_addr)
+{
+  int i, j;
+  int pids[n];
+  struct proc *np[n];
+  struct proc *p = myproc();
+
+  // Allocate processes.
+  for (i = 0; i < n; i++)
+  {
+    if((np[i] = allocproc()) == 0) {
+      for (j = 0; j < i - 1; j ++) {
+        acquire(&np[j]->lock);
+        freeproc(np[j]);
+        release(&np[j]->lock);
+      }
+      return -1;
+    }
+
+    // Copy user memory from parent to children.
+    if(uvmcopy(p->pagetable, np[i]->pagetable, p->sz) < 0) {
+      for (j = 0; j < i; j ++) {
+        if (j < i - 1) acquire(&np[j]->lock);
+        freeproc(np[j]);
+        release(&np[j]->lock);
+      }
+      return -1;
+    }
+
+    np[i]->sz = p->sz;
+    *(np[i]->trapframe) = *(p->trapframe);
+    // Cause fork to return 0 in the child.
+    np[i]->trapframe->a0 = i + 1;
+    // increment reference counts on open file descriptors.
+    for(j = 0; j < NOFILE; j++)
+      if(p->ofile[j])
+        np[i]->ofile[j] = filedup(p->ofile[j]);
+    np[i]->cwd = idup(p->cwd);
+    safestrcpy(np[i]->name, p->name, sizeof(p->name));
+    pids[i] = np[i]->pid;
+
+    release(&np[i]->lock);
+
+    acquire(&wait_lock);
+    np[i]->parent = p;
+    release(&wait_lock);
+  }
+
+  // after successfully creating processes, change them to runnable
+  for (i = 0; i < n; i++)
+  {
+    acquire(&np[i]->lock);
+    np[i]->state = RUNNABLE;
+    release(&np[i]->lock);
+  }
+  
+  copyout(p->pagetable, pids_addr, (void *)pids, n * sizeof(int));
+
+  return 0;
+}
+
 // Pass p's abandoned children to init.
 // Caller must hold wait_lock.
 void
@@ -369,7 +431,7 @@ exit(int status)
 
   // Give any children to init.
   reparent(p);
-
+  
   // Parent might be sleeping in wait().
   wakeup(p->parent);
   
@@ -388,12 +450,12 @@ exit(int status)
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
 int
-wait(uint64 addr)
+wait(uint64 addr, uint64 msg_addr)
 {
   struct proc *pp;
   int havekids, pid;
   struct proc *p = myproc();
-
+  struct proc *child;
   acquire(&wait_lock);
 
   for(;;){
@@ -405,6 +467,7 @@ wait(uint64 addr)
         acquire(&pp->lock);
 
         havekids = 1;
+        child = pp;
         if(pp->state == ZOMBIE){
           // Found one.
           pid = pp->pid;
@@ -431,8 +494,59 @@ wait(uint64 addr)
     
     // Wait for a child to exit.
     sleep(p, &wait_lock);  //DOC: wait-sleep
+    if (child) copyout(p->pagetable, msg_addr, (char *)child->exit_msg, 32);
   }
 }
+
+// Wait for all child processes to exit and return its pid.
+// Return -1 if this process has no children.
+int
+waitall(uint64 n_addr, uint64 statuses_addr)
+{
+  struct proc *pp;
+  int totalkids = 0, currentkids;
+  struct proc *p = myproc();
+  int statuses[NPROC];
+  acquire(&wait_lock);
+
+  for(;;){
+    // Scan through table looking for exited children.
+    currentkids = 0;
+    for(pp = proc; pp < &proc[NPROC]; pp++){
+      if(pp->parent == p){
+        // make sure the child isn't still in exit() or swtch().
+        acquire(&pp->lock);
+        currentkids++;
+        
+        if(pp->state == ZOMBIE){
+          // collect information from the exiting child
+          statuses[totalkids] = pp->xstate;
+          totalkids++;
+          currentkids--;
+          freeproc(pp);
+        }
+        release(&pp->lock);
+      }
+    }
+    
+    if(!currentkids){
+      release(&wait_lock);
+      copyout(p->pagetable, n_addr, (char*)&totalkids, sizeof(int));
+      copyout(p->pagetable, statuses_addr, (char*)statuses, totalkids * sizeof(int));
+      return 0;
+    }
+
+    // handle killed parent.
+    if(killed(p)){
+      release(&wait_lock);
+      return -1;
+    }
+    
+    // Wait for the next event.
+    sleep(p, &wait_lock);  //DOC: wait-sleep
+  }
+}
+
 
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
