@@ -22,6 +22,10 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int peterson_create(void);
+int peterson_acquire(int, int);
+int peterson_release(int, int);
+int peterson_destroy(int);
 
 // ulib.c
 int stat(const char*, struct stat*);
@@ -39,3 +43,6 @@ void free(void*);
 int atoi(const char*);
 int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
+int tournament_create(int);
+int tournament_acquire(void);
+int tournament_release(void);

@@ -681,3 +681,23 @@ procdump(void)
     printf("\n");
   }
 }
+
+int peterson_create()
+{
+  panic("Not implemented");
+}
+
+int peterson_acquire(int lock_id, int role)
+{
+  panic("Not implemented");
+}
+
+int peterson_release(int lock_id, int role)
+{
+  panic("Not implemented");
+}
+
+int peterson_destroy(int lock_id)
+{
+  panic("Not implemented");
+}
