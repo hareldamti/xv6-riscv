@@ -97,6 +97,7 @@ struct cpu*     mycpu(void);
 struct cpu*     getmycpu(void);
 struct proc*    myproc();
 void            procinit(void);
+void            petersoninit(void);
 void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
 void            sleep(void*, struct spinlock*);
@@ -130,10 +131,12 @@ int             holdingsleep(struct sleeplock*);
 void            initsleeplock(struct sleeplock*, char*);
 
 // petersonlock.c
-void            acquirepeterson(struct petersonlock*);
-void            releasepeterson(struct petersonlock*);
-int             holdingpeterson(struct petersonlock*);
-void            initpetersonlock(struct petersonlock*, char*);
+void            acquirepeterson(struct petersonlock*, int role);
+void            releasepeterson(struct petersonlock*, int role);
+int             holdingpeterson(struct petersonlock*, int role);
+int             trycreatepetersonlock(struct petersonlock*);
+void            destroypeterson(struct petersonlock*);
+void            initpetersonlock(struct petersonlock*);
 
 
 // string.c

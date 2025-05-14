@@ -11,7 +11,7 @@ int main(void)
     }
     int fork_ret = fork();
     int role = fork_ret > 0 ? 0 : 1;
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 20; i++)
     {
         if (peterson_acquire(lock_id, role) < 0)
         {
@@ -20,15 +20,17 @@ int main(void)
         }
         // Critical section
         if (role == 0)
-            printf("Parent process in critical section\n");
+            printf("Parent process in critical section %d\n", i);
         else
-            printf("Child process in critical section\n");
+            printf("Child process in critical section %d\n", i);
+        
         if (peterson_release(lock_id, role) < 0)
         {
             printf("Failed to release lock\n");
             exit(1);
         }
     }
+    
     if (fork_ret > 0)
     {
         wait(0);
@@ -38,6 +40,7 @@ int main(void)
             printf("Failed to destroy lock\n");
             exit(1);
         }
+        exit(0);
     }
     exit(0);
 }

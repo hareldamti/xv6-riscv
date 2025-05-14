@@ -39,4 +39,4 @@ entry("uptime");
 entry("peterson_create");
 entry("peterson_acquire");
 entry("peterson_release");
-entry("peterson_destory");
+entry("peterson_destroy");

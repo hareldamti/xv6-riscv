@@ -1,10 +1,7 @@
 // Long-term locks for processes
 struct petersonlock {
-  uint locked;       // Is the lock held?
-  struct spinlock lk; // spinlock protecting this sleep lock
-  
-  // For debugging:
-  char *name;        // Name of lock.
-  int pid;           // Process holding lock
+  struct spinlock lk;
+  int used;
+  int b[2];
+  int turn;
 };
-

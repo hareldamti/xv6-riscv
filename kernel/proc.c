@@ -3,12 +3,15 @@
 #include "memlayout.h"
 #include "riscv.h"
 #include "spinlock.h"
+#include "petersonlock.h"
 #include "proc.h"
 #include "defs.h"
 
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
+
+struct petersonlock plk[NPLK];
 
 struct proc *initproc;
 
@@ -56,6 +59,17 @@ procinit(void)
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
   }
+}
+
+void
+petersoninit(void)
+{
+  struct petersonlock *lk;
+  for(lk = plk; lk < &plk[NPLK]; lk++)
+  {
+    initpetersonlock(lk);
+  }
+
 }
 
 // Must be called with interrupts disabled,
@@ -684,20 +698,35 @@ procdump(void)
 
 int peterson_create()
 {
-  panic("Not implemented");
+  int i;
+  for(i = 0; i < NPROC; i++)
+  {
+    if (trycreatepetersonlock(&plk[i]))
+      return i;
+  }
+  return -1;
 }
 
 int peterson_acquire(int lock_id, int role)
 {
-  panic("Not implemented");
+  if (lock_id < 0 || lock_id > NPLK - 1) return -1; // Id outside of bounds
+  if (!plk[lock_id].used) return -1; // Lock isn't created
+  acquirepeterson(&plk[lock_id], role);
+  return 0;
 }
 
 int peterson_release(int lock_id, int role)
 {
-  panic("Not implemented");
+  if (lock_id < 0 || lock_id > NPLK - 1) return -1; // Id outside of bounds
+  if (!plk[lock_id].used) return -1; // Lock isn't created
+  releasepeterson(&plk[lock_id], role);
+  return 0;
 }
 
 int peterson_destroy(int lock_id)
 {
-  panic("Not implemented");
+  if (lock_id < 0 || lock_id > NPLK - 1) return -1; // Id outside of bounds
+  if (!plk[lock_id].used) return -1; // Lock isn't created
+  destroypeterson(&plk[lock_id]);
+  return 0;
 }

@@ -23,4 +23,4 @@
 #define SYS_peterson_create 22
 #define SYS_peterson_acquire 23
 #define SYS_peterson_release 24
-#define SYS_peterson_destory 25
+#define SYS_peterson_destroy 25
