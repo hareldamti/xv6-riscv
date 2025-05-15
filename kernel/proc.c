@@ -710,23 +710,17 @@ int peterson_create()
 int peterson_acquire(int lock_id, int role)
 {
   if (lock_id < 0 || lock_id > NPLK - 1) return -1; // Id outside of bounds
-  if (!plk[lock_id].used) return -1; // Lock isn't created
-  acquirepeterson(&plk[lock_id], role);
-  return 0;
+  return acquirepeterson(&plk[lock_id], role);
 }
 
 int peterson_release(int lock_id, int role)
 {
   if (lock_id < 0 || lock_id > NPLK - 1) return -1; // Id outside of bounds
-  if (!plk[lock_id].used) return -1; // Lock isn't created
-  releasepeterson(&plk[lock_id], role);
-  return 0;
+  return releasepeterson(&plk[lock_id], role);
 }
 
 int peterson_destroy(int lock_id)
 {
   if (lock_id < 0 || lock_id > NPLK - 1) return -1; // Id outside of bounds
-  if (!plk[lock_id].used) return -1; // Lock isn't created
-  destroypeterson(&plk[lock_id]);
-  return 0;
+  return destroypeterson(&plk[lock_id]);
 }

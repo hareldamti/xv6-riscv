@@ -11,7 +11,7 @@ int main(void)
     }
     int fork_ret = fork();
     int role = fork_ret > 0 ? 0 : 1;
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 100; i++)
     {
         if (peterson_acquire(lock_id, role) < 0)
         {

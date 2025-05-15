@@ -13,28 +13,40 @@ void
 initpetersonlock(struct petersonlock *lk)
 {
   initlock(&lk->lk, "peterson lock");
-  lk->used = 0;
+  lk->state = AVAILABLE;
+
 }
 
 int
 trycreatepetersonlock(struct petersonlock *lk)
 {
   acquire(&lk->lk);
-  if (lk->used) {
+  __sync_synchronize();
+  if (!lk->state == AVAILABLE) {
     release(&lk->lk);
     return 0;
   }
-  lk->used = 1;
+  lk->state = ACTIVE;
   lk->b[0] = 0;
   lk->b[1] = 0;
   lk->turn = -1;
+  __sync_synchronize();
   release(&lk->lk);
   return 1;
 }
 
-void
+int
 acquirepeterson(struct petersonlock *lk, int role)
 {
+  // Don't acquire if AVAILABLE (synchronize for creation acquizition concurrency)
+  // Don't acquire if DESTROYED (waiting for last holder to release)
+  acquire(&lk->lk); 
+  if (lk->state != ACTIVE) {
+    release(&lk->lk);
+    return -1;
+  }
+  release(&lk->lk);
+
   lk->b[role] = 1;
   lk-> turn = role;
   __sync_synchronize();
@@ -42,26 +54,38 @@ acquirepeterson(struct petersonlock *lk, int role)
     yield();
     __sync_synchronize();
   }
-
-}
-
-void
-releasepeterson(struct petersonlock *lk, int role)
-{
-  lk->b[role] = 0;
-  __sync_synchronize();
+  return 0;
 }
 
 int
-holdingpeterson(struct petersonlock *lk, int role)
+releasepeterson(struct petersonlock *lk, int role)
 {
-  return lk->b[role] == 1 && lk->b[1 - role] == 0;
+  __sync_synchronize();
+  if (lk->state == AVAILABLE) return -1;
+
+  lk->b[role] = 0;
+  acquire(&lk->lk);
+  if (lk->state == DESTROYED) {
+    lk->state = AVAILABLE;
+    release(&lk->lk);
+  }
+  release(&lk->lk);
+  __sync_synchronize();
+  return 0;
 }
 
-void
+int
 destroypeterson(struct petersonlock *lk)
 {
   acquire(&lk->lk);
-  lk->used = 0;
+  if (lk->state != ACTIVE) {
+    release(&lk->lk);
+    return -1;
+  }
+  if (lk->b[0] || lk->b[1]) {
+    lk->state = DESTROYED;
+  } else lk->state = AVAILABLE;
+  __sync_synchronize();
   release(&lk->lk);
+  return 0;
 }

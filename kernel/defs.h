@@ -131,12 +131,12 @@ int             holdingsleep(struct sleeplock*);
 void            initsleeplock(struct sleeplock*, char*);
 
 // petersonlock.c
-void            acquirepeterson(struct petersonlock*, int role);
-void            releasepeterson(struct petersonlock*, int role);
-int             holdingpeterson(struct petersonlock*, int role);
-int             trycreatepetersonlock(struct petersonlock*);
-void            destroypeterson(struct petersonlock*);
-void            initpetersonlock(struct petersonlock*);
+int            acquirepeterson(struct petersonlock*, int role);
+int            releasepeterson(struct petersonlock*, int role);
+int            holdingpeterson(struct petersonlock*, int role);
+int            trycreatepetersonlock(struct petersonlock*);
+int            destroypeterson(struct petersonlock*);
+void           initpetersonlock(struct petersonlock*);
 
 
 // string.c
