@@ -6,6 +6,7 @@
         "proc.h": "c",
         "petersonlock.h": "c",
         "param.h": "c",
-        "spinlock.h": "c"
+        "spinlock.h": "c",
+        "user.h": "c"
     },
 }
