@@ -18,11 +18,8 @@ int main(void)
             printf("Failed to acquire lock\n");
             exit(1);
         }
-        // Critical section
-        if (role == 0)
-            printf("Parent process in critical section %d\n", i);
-        else
-            printf("Child process in critical section %d\n", i);
+        
+        printf("%s process in critical section %d\n", !role ? "Parent" : "Child", i);
         
         if (peterson_release(lock_id, role) < 0)
         {
