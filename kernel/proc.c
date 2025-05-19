@@ -699,7 +699,7 @@ procdump(void)
 int peterson_create()
 {
   int i;
-  for(i = 0; i < NPROC; i++)
+  for(i = 0; i < NPLK; i++)
   {
     if (trycreatepetersonlock(&plk[i]))
       return i;
