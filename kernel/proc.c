@@ -681,3 +681,76 @@ procdump(void)
     printf("\n");
   }
 }
+
+int validate_pid(int pid) {
+  return 0 <= pid && pid < NPROC
+  && proc[pid].state != UNUSED && proc[pid].state != USED && proc[pid].state != ZOMBIE;
+}
+
+uint64 map_shared_pages_internal(struct proc* src_proc, struct proc* dst_proc, uint64 src_va, uint64 size)
+{
+  char *mem;
+  uint64 dst_va, offset, dst_oldsize, dst_newsize;
+
+  offset = src_va - PGROUNDDOWN(src_va);
+  src_va -= offset;
+  size += offset;
+  if (size < 0)
+    return 0;
+  
+  dst_oldsize = PGROUNDUP(dst_proc->sz);
+  dst_newsize = dst_oldsize + size;
+  dst_va = dst_oldsize;
+
+  while(dst_va < dst_newsize) {
+    mem = kalloc();
+    if(mem == 0) {
+      uvmdealloc(dst_proc->pagetable, dst_va, PGROUNDUP(dst_proc->sz));
+      return 0;
+    }
+    memset(mem, 0, PGSIZE);
+    if(
+      mappages(src_proc->pagetable, src_va, PGSIZE, (uint64)mem, PTE_R|PTE_U|PTE_W) != 0
+      ||
+      mappages(dst_proc->pagetable, dst_va, PGSIZE, (uint64)mem, PTE_R|PTE_U|PTE_W|PTE_S) != 0
+    ){
+      kfree(mem);
+      uvmdealloc(dst_proc->pagetable, dst_va, PGROUNDUP(dst_proc->sz));
+      return 0;
+    }
+    src_proc->sz += PGSIZE;
+    dst_proc->sz += PGSIZE;
+    dst_va += PGSIZE;
+    src_va += PGSIZE;
+  }
+
+  
+  return dst_oldsize + offset;
+}
+
+uint64 map_shared_pages(int src_pid, int dst_pid, uint64 src_va, uint64 size)
+{
+  if (!validate_pid(src_pid) || !validate_pid(dst_pid)) return 0;
+  return map_shared_pages_internal(&proc[src_pid], &proc[dst_pid], src_va, size);
+}
+
+
+uint64 unmap_shared_pages(struct proc* p, uint64 addr, uint64 size)
+{
+  int a, npages = (PGROUNDUP(addr + size) - PGROUNDDOWN(addr)) / PGSIZE;
+  pte_t* pte;
+
+  for(a = PGROUNDDOWN(addr); a < PGROUNDDOWN(addr) + npages*PGSIZE; a += PGSIZE){
+    if((pte = walk(p->pagetable, a, 0)) == 0 || !(*pte & PTE_S))
+      return -1;
+  }
+
+  uvmunmap(
+    p->pagetable,
+    PGROUNDDOWN(addr),
+    npages,
+    0
+  );
+  p->sz -= npages * PGSIZE;
+  return 0;
+}
