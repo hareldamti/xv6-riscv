@@ -714,9 +714,9 @@ uint64 map_shared_pages(struct proc* src_proc, struct proc* dst_proc, uint64 src
     }
     memset(mem, 0, PGSIZE);
     if(
-      mappages(src_proc->pagetable, src_va, PGSIZE, (uint64)mem, PTE_R|PTE_U|PTE_W) != 0
+      mappages(src_proc->pagetable, src_va, PGSIZE, (uint64)mem, PTE_R|PTE_U|PTE_W|PTE_S) != 0
       ||
-      mappages(dst_proc->pagetable, dst_va, PGSIZE, (uint64)mem, PTE_R|PTE_U|PTE_W|PTE_S) != 0
+      mappages(dst_proc->pagetable, dst_va, PGSIZE, (uint64)mem, PTE_R|PTE_U|PTE_W) != 0
     ){
       kfree(mem);
       uvmdealloc(dst_proc->pagetable, dst_va, PGROUNDUP(dst_proc->sz));

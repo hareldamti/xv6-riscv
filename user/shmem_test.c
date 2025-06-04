@@ -5,22 +5,47 @@
 int
 main(void)
 {
-    //int base_pid = getpid();
     int pid = fork();
-    void* dst_addr;
+    int shared_size = 18;
     void* shared_va;
     if (pid != 0) {
-        if ((dst_addr = map_shared_pages(pid, &shared_va, 4)) == 0) {
-            printf("Error in map_shared_pages\n");
+        // Turn 1
+        if (map_shared_pages(pid, &shared_va, shared_size) == 0) {
+            printf("Parent/ Got an error in map_shared_pages\n");
             exit(1);
         }
-        *(int*)shared_va = 16;
+        printf("Parent/ Mapped shared pages\n");
+        sleep(2);
+
+        // Turn 3
+        printf("Parnet/ Buffer has: %s\n", shared_va);
+        strcpy(shared_va, "Hello offspring");
+        sleep(2);
+
+        // Turn 5
+        if (unmap_shared_pages(shared_va, shared_size) == -1) {
+            printf("Parent/ Got an error in unmap_shared_pages\n");
+            exit(1);
+        }
+        printf("Parent/ Unmapped shared pages\n");
         wait(0);
-        printf("dst value: %d\n", *(int*)shared_va);
     }
     else {
         sleep(1);
-        *(int*)shared_va = 17;
+
+        // Turn 2
+        if (shared_va == 0) exit(1);
+        strcpy(shared_va, "Hello caregiver");
+        sleep(2);
+
+        // Turn 4
+        printf("Child/ Buffer has: %s\n", shared_va);
+        sleep(2);
+
+        // Turn 5
+        shared_va = malloc(shared_size);
+        strcpy(shared_va, "Malloc after unmap success");
+        printf("Child/ %s\n", shared_va);
     }
     exit(0);
 }
