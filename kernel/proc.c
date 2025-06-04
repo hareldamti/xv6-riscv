@@ -682,12 +682,16 @@ procdump(void)
   }
 }
 
-int validate_pid(int pid) {
-  return 0 <= pid && pid < NPROC
-  && proc[pid].state != UNUSED && proc[pid].state != USED && proc[pid].state != ZOMBIE;
+struct proc* get_process(int pid) {
+  struct proc *p;
+  for(p = proc; p < &proc[NPROC]; p++){
+    if (p->pid == pid && p->state != UNUSED && p->state != USED && p->state != ZOMBIE)
+      return p;
+  }
+  return 0;
 }
 
-uint64 map_shared_pages_internal(struct proc* src_proc, struct proc* dst_proc, uint64 src_va, uint64 size)
+uint64 map_shared_pages(struct proc* src_proc, struct proc* dst_proc, uint64 src_va, uint64 size)
 {
   char *mem;
   uint64 dst_va, offset, dst_oldsize, dst_newsize;
@@ -727,13 +731,6 @@ uint64 map_shared_pages_internal(struct proc* src_proc, struct proc* dst_proc, u
   
   return dst_oldsize + offset;
 }
-
-uint64 map_shared_pages(int src_pid, int dst_pid, uint64 src_va, uint64 size)
-{
-  if (!validate_pid(src_pid) || !validate_pid(dst_pid)) return 0;
-  return map_shared_pages_internal(&proc[src_pid], &proc[dst_pid], src_va, size);
-}
-
 
 uint64 unmap_shared_pages(struct proc* p, uint64 addr, uint64 size)
 {
