@@ -28,6 +28,9 @@ main(void)
             exit(1);
         }
         printf("Parent/ Unmapped shared pages\n");
+        shared_va = malloc(shared_size);
+        strcpy(shared_va, "Malloc after unmap success");
+        printf("Parent/ %s\n", shared_va);
         wait(0);
     }
     else {
