@@ -693,8 +693,7 @@ struct proc* get_process(int pid) {
 
 uint64 map_shared_pages(struct proc* src_proc, struct proc* dst_proc, uint64 src_va, uint64 size)
 {
-  char *mem;
-  uint64 dst_va, offset, dst_oldsize, dst_newsize;
+  uint64 dst_va, offset, dst_oldsize, dst_newsize, src_pa;
 
   offset = src_va - PGROUNDDOWN(src_va);
   src_va -= offset;
@@ -707,28 +706,22 @@ uint64 map_shared_pages(struct proc* src_proc, struct proc* dst_proc, uint64 src
   dst_va = dst_oldsize;
 
   while(dst_va < dst_newsize) {
-    mem = kalloc();
-    if(mem == 0) {
-      uvmdealloc(dst_proc->pagetable, dst_va, PGROUNDUP(dst_proc->sz));
-      return 0;
-    }
-    memset(mem, 0, PGSIZE);
-    if(
-      mappages(src_proc->pagetable, src_va, PGSIZE, (uint64)mem, PTE_R|PTE_U|PTE_W|PTE_S) != 0
+    // find the physical page in src_proc
+    if (
+      (src_pa = walkaddr(src_proc->pagetable, src_va)) == 0
       ||
-      mappages(dst_proc->pagetable, dst_va, PGSIZE, (uint64)mem, PTE_R|PTE_U|PTE_W) != 0
-    ){
-      kfree(mem);
-      uvmdealloc(dst_proc->pagetable, dst_va, PGROUNDUP(dst_proc->sz));
+      mappages(dst_proc->pagetable, dst_va, PGSIZE, src_pa, PTE_R|PTE_U|PTE_W|PTE_S) != 0
+    ) {
+      uvmunmap(dst_proc->pagetable, dst_oldsize, (dst_va - dst_oldsize) / PGSIZE, 0);
+      printf("dst_va - %d\n",dst_va);
       return 0;
     }
-    src_proc->sz += PGSIZE;
+  
     dst_proc->sz += PGSIZE;
     dst_va += PGSIZE;
     src_va += PGSIZE;
   }
 
-  
   return dst_oldsize + offset;
 }
 

@@ -7,10 +7,12 @@ main(void)
 {
     int pid = fork();
     int shared_size = 18;
-    void* shared_va;
+    void* dst_va;
+    char buffer[shared_size];
+    char* msg = buffer;
     if (pid != 0) {
         // Turn 1
-        if (map_shared_pages(pid, &shared_va, shared_size) == 0) {
+        if (map_shared_pages(pid, msg, &dst_va, shared_size) == 0) {
             printf("Parent/ Got an error in map_shared_pages\n");
             exit(1);
         }
@@ -18,37 +20,37 @@ main(void)
         sleep(2);
 
         // Turn 3
-        printf("Parnet/ Buffer has: %s\n", shared_va);
-        strcpy(shared_va, "Hello offspring");
+        printf("Parnet/ Buffer has: %s\n", msg);
+        strcpy(msg, "Hello offspring");
         sleep(2);
 
         // Turn 5
-        if (unmap_shared_pages(shared_va, shared_size) == -1) {
+        if (unmap_shared_pages(pid, dst_va, shared_size) == -1) {
             printf("Parent/ Got an error in unmap_shared_pages\n");
             exit(1);
         }
         printf("Parent/ Unmapped shared pages\n");
-        shared_va = malloc(shared_size);
-        strcpy(shared_va, "Malloc after unmap success");
-        printf("Parent/ %s\n", shared_va);
+        msg = malloc(shared_size);
+        strcpy(msg, "Malloc after unmap success");
+        printf("Parent/ %s\n", msg);
         wait(0);
     }
     else {
         sleep(1);
 
         // Turn 2
-        if (shared_va == 0) exit(1);
-        strcpy(shared_va, "Hello caregiver");
+        if (dst_va == 0) exit(1);
+        strcpy(dst_va, "Hello caregiver");
         sleep(2);
 
         // Turn 4
-        printf("Child/ Buffer has: %s\n", shared_va);
+        printf("Child/ Buffer has: %s\n", dst_va);
         sleep(2);
 
         // Turn 5
-        shared_va = malloc(shared_size);
-        strcpy(shared_va, "Malloc after unmap success");
-        printf("Child/ %s\n", shared_va);
+        dst_va = malloc(shared_size);
+        strcpy(dst_va, "Malloc after unmap success");
+        printf("Child/ %s\n", dst_va);
     }
     exit(0);
 }
