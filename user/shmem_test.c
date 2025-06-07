@@ -8,9 +8,9 @@ main(void)
     int pid = fork();
     int shared_size = 18;
     void* dst_va;
-    char buffer[shared_size];
-    char* msg = buffer;
+    char* msg;
     if (pid != 0) {
+        msg = malloc(shared_size);
         // Turn 1
         if (map_shared_pages(pid, msg, &dst_va, shared_size) == 0) {
             printf("Parent/ Got an error in map_shared_pages\n");
