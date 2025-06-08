@@ -20,6 +20,12 @@ log_info(struct log_buffer* log_buffer, int id) {
     int current_index = log_buffer->index + 4,
         rand = 16 + (id + current_index + 41) * 37 % 15,
         msg_length = (12 + 1 + rand + 2 + 3) & -4;
+
+    // check for overflow
+    if (log_buffer->index + 4 + msg_length > LOG_BUFFER_SIZE) {
+        printf("Log buffer overflow, exiting...\n");
+        exit(1);
+    }
     char c = 'A' + id;
 
     *(short*)(log_buffer->buffer + log_buffer->index + 1) = msg_length;
@@ -52,7 +58,7 @@ main(void)
     // int x = (13 << 16) + 7;
     // printf("%d, %d", *(short*)&x, *((short*)&x + 1)); // 7, 13
 
-    int num_writers = 20, id, i;
+    int num_writers = 25, id, i;
     struct log_buffer *log_buffer = 0, *writer_log_buffer = 0;
     int pids[num_writers];
 
@@ -79,7 +85,8 @@ main(void)
             printf("Failed mapping buffer to writer %c\n", 'A' + id);
     printf("Mapped pages\n");
 
-    while(wait(0) == -1); // Wait for kids to finish writing
+    //while(wait(0) == -1); // Wait for kids to finish writing
+    while (wait(0) > 0); //might be better, but not supported in xv6?
     printf("Log buffer length: %d\n", log_buffer->index);
     print_logs(log_buffer);
 
