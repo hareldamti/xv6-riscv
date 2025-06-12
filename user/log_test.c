@@ -55,9 +55,6 @@ print_logs(struct log_buffer* log_buffer)
 int
 main(void)
 {
-    // int x = (13 << 16) + 7;
-    // printf("%d, %d", *(short*)&x, *((short*)&x + 1)); // 7, 13
-
     int num_writers = 25, id, i;
     struct log_buffer *log_buffer = 0, *writer_log_buffer = 0;
     int pids[num_writers];
@@ -85,8 +82,7 @@ main(void)
             printf("Failed mapping buffer to writer %c\n", 'A' + id);
     printf("Mapped pages\n");
 
-    //while(wait(0) == -1); // Wait for kids to finish writing
-    while (wait(0) > 0); //might be better, but not supported in xv6?
+    while (wait(0) > 0); // Wait for kids to finish writing
     printf("Log buffer length: %d\n", log_buffer->index);
     print_logs(log_buffer);
 
