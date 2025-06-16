@@ -681,3 +681,66 @@ procdump(void)
     printf("\n");
   }
 }
+
+struct proc* get_process(int pid) {
+  struct proc *p;
+  for(p = proc; p < &proc[NPROC]; p++){
+    if (p->pid == pid && p->state != UNUSED && p->state != USED && p->state != ZOMBIE)
+      return p;
+  }
+  return 0;
+}
+
+uint64 map_shared_pages(struct proc* src_proc, struct proc* dst_proc, uint64 src_va, uint64 size)
+{
+  uint64 dst_va, offset, dst_oldsize, dst_newsize, src_pa;
+
+  offset = src_va - PGROUNDDOWN(src_va);
+  src_va -= offset;
+  size += offset;
+  if (size < 0)
+    return 0;
+  
+  dst_oldsize = PGROUNDUP(dst_proc->sz);
+  dst_newsize = dst_oldsize + size;
+  dst_va = dst_oldsize;
+
+  while(dst_va < dst_newsize) {
+    // find the physical page in src_proc
+    if (
+      (src_pa = walkaddr(src_proc->pagetable, src_va)) == 0
+      ||
+      mappages(dst_proc->pagetable, dst_va, PGSIZE, src_pa, PTE_R|PTE_U|PTE_W|PTE_S) != 0
+    ) {
+      uvmunmap(dst_proc->pagetable, dst_oldsize, (dst_va - dst_oldsize) / PGSIZE, 0);
+      printf("dst_va - %d\n",dst_va);
+      return 0;
+    }
+  
+    dst_proc->sz += PGSIZE;
+    dst_va += PGSIZE;
+    src_va += PGSIZE;
+  }
+
+  return dst_oldsize + offset;
+}
+
+uint64 unmap_shared_pages(struct proc* p, uint64 addr, uint64 size)
+{
+  int a, npages = (PGROUNDUP(addr + size) - PGROUNDDOWN(addr)) / PGSIZE;
+  pte_t* pte;
+
+  for(a = PGROUNDDOWN(addr); a < PGROUNDDOWN(addr) + npages*PGSIZE; a += PGSIZE){
+    if((pte = walk(p->pagetable, a, 0)) == 0 || !(*pte & PTE_S))
+      return -1;
+  }
+
+  uvmunmap(
+    p->pagetable,
+    PGROUNDDOWN(addr),
+    npages,
+    0
+  );
+  p->sz -= npages * PGSIZE;
+  return 0;
+}
